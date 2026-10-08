@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>24点 · 纸牌求解器</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    color: #F5F0E8;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: #14101c;
+  }
+  /* ---------- 背景层 ---------- */
+  #bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
+        image-rendering: pixelated; }
+  #bgDim { position: fixed; inset: 0; z-index: 1; pointer-events: none;
+           background: rgba(255,255,255,0); transition: background .4s; }
+  #crt { position: fixed; inset: 0; z-index: 2; pointer-events: none;
+         background: repeating-linear-gradient(to bottom, rgba(0,0,0,.055) 0 1px, transparent 1px 3px); }
+  #crt::after { content: ""; position: absolute; inset: 0;
+         background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.38) 100%); }
+  #fx { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+
+  .wrap { position: relative; z-index: 10; max-width: 860px; margin: 0 auto;
+          padding: 20px 16px 60px; }
+
+  /* ---------- 顶栏 ---------- */
+  header { display: flex; align-items: flex-start; justify-content: space-between;
+           gap: 12px; margin-bottom: 14px; }
+  .title h1 { margin: 0; font-size: clamp(40px, 8vw, 64px); font-weight: 900;
+              letter-spacing: 4px; color: #F3B958;
+              text-shadow: 0 2px 0 #FE5F55, 0 4px 0 #a33327, 3px 7px 10px rgba(0,0,0,.55); }
+  .title p { margin: 6px 0 0; font-size: 14px; letter-spacing: 6px; color: #F5F0E8;
+             text-shadow: 2px 2px 0 rgba(0,0,0,.8); opacity: .9; }
+  .top-btns { display: flex; gap: 8px; padding-top: 8px; }
+  .icon-btn { width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
+              background: #374244; color: #F5F0E8; font-size: 20px;
+              border: 2px solid rgba(255,255,255,.85);
+              box-shadow: 0 3px 0 #222d2f; transition: transform .08s, box-shadow .08s; }
+  .icon-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #222d2f; }
+
+  /* ---------- 牌桌 ---------- */
+  .table { background: radial-gradient(ellipse at 50% 35%, #35955c 0%, #237a46 55%, #175c33 100%);
+           border: 6px solid #6b4a2a; border-radius: 22px;
+           box-shadow: inset 0 0 60px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.5);
+           padding: 26px 18px 22px; position: relative; }
+  .table::before { content: ""; position: absolute; inset: 8px; border-radius: 15px;
+                   border: 2px dashed rgba(255,255,255,.18); pointer-events: none; }
+  .cards { display: flex; justify-content: center; gap: clamp(8px, 2.5vw, 22px);
+           flex-wrap: wrap; perspective: 900px; }
+
+  /* ---------- 牌 ---------- */
+  .card { width: clamp(104px, 22vw, 132px); aspect-ratio: 5/7; cursor: pointer;
+          animation: sway 5s ease-in-out infinite; }
+  .card:nth-child(2) { animation-delay: -1.2s; }
+  .card:nth-child(3) { animation-delay: -2.6s; }
+  .card:nth-child(4) { animation-delay: -3.8s; }
+  @keyframes sway { 0%,100% { transform: rotate(-1.1deg); } 50% { transform: rotate(1.1deg); } }
+  .card-inner { position: relative; width: 100%; height: 100%; border-radius: 12px;
+                transform-style: preserve-3d; transition: transform .18s ease; }
+  .card-face { position: absolute; inset: 0; z-index: 2; border-radius: 12px;
+               background: linear-gradient(160deg, #fffdf6 0%, #f7f1e3 100%);
+               border: 3px solid #2e3a3d;
+               box-shadow: 0 6px 14px rgba(0,0,0,.45);
+               overflow: hidden; }
+  .foil { position: absolute; inset: 0; z-index: 1; border-radius: 12px; pointer-events: none;
+          background: linear-gradient(115deg, transparent 15%, rgba(255,0,128,.28) 32%,
+                      rgba(255,215,0,.32) 45%, rgba(0,220,255,.30) 58%, rgba(150,80,255,.26) 68%, transparent 82%);
+          background-size: 280% 280%; opacity: .55;
+          animation: foilSweep 4.5s linear infinite; }
+  @keyframes foilSweep { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+  .card.selected .card-inner { outline: 3px solid #FFD54A; outline-offset: 2px;
+          box-shadow: 0 0 22px rgba(255,213,74,.85), 0 6px 14px rgba(0,0,0,.45); }
+  .card.selected .foil { opacity: .85; animation-duration: 2.2s; }
+  .corner { position: absolute; display: flex; flex-direction: column; align-items: center;
+            line-height: 1.05; font-weight: 900; }
+  .corner.top { top: 7px; left: 9px; }
+  .corner.bottom { bottom: 7px; right: 9px; transform: rotate(180deg); }
+  .corner .rank { font-size: clamp(22px, 5vw, 30px); letter-spacing: 0; }
+  .corner .suit { font-size: clamp(16px, 3.6vw, 21px); }
+  .pip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+         font-size: clamp(52px, 12vw, 72px); opacity: .92; }
+  .red { color: #d21f3c; } .black { color: #20242b; }
+  .card.deal-in { animation: dealIn .55s cubic-bezier(.2,1.35,.4,1) backwards, sway 5s ease-in-out infinite 0.6s; }
+  @keyframes dealIn { 0% { transform: translate(-38vw,-32vh) rotate(-35deg) scale(.5); opacity: 0; }
+                     100% { transform: translate(0,0) rotate(0) scale(1); opacity: 1; } }
+  .spark { position: absolute; z-index: 3; color: #fff; font-size: 14px; pointer-events: none;
+           text-shadow: 0 0 6px #FFD54A, 0 0 3px #fff;
+           animation: sparkUp .9s ease-out forwards; }
+  @keyframes sparkUp { 0% { transform: scale(.3) translateY(0); opacity: 0; }
+                       30% { opacity: 1; } 100% { transform: scale(1.25) translateY(-26px); opacity: 0; } }
+  .shake { animation: shakeX .35s; }
+  @keyframes shakeX { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
+                      40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(3px)} }
+
+  /* ---------- 按钮 ---------- */
+  .controls { display: flex; justify-content: center; gap: 14px; margin: 20px 0 6px; flex-wrap: wrap; }
+  .btn { font-family: inherit; font-size: 18px; font-weight: 900; letter-spacing: 3px;
+         color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,.45);
+         padding: 13px 30px; border-radius: 14px; cursor: pointer;
+         border: 2px solid rgba(255,255,255,.9); transition: transform .08s, box-shadow .08s; }
+  .btn:active { transform: translateY(4px); }
+  .btn.blue { background: linear-gradient(#3db4ff, #009DFF); box-shadow: 0 5px 0 #046aa8, 0 8px 14px rgba(0,0,0,.4); }
+  .btn.blue:active { box-shadow: 0 1px 0 #046aa8; }
+  .btn.green { background: linear-gradient(#63d6a4, #4BC292); box-shadow: 0 5px 0 #2f8f66, 0 8px 14px rgba(0,0,0,.4); }
+  .btn.green:active { box-shadow: 0 1px 0 #2f8f66; }
+  .btn.orange { background: linear-gradient(#ffbe45, #FDA200); box-shadow: 0 5px 0 #b37400, 0 8px 14px rgba(0,0,0,.4); }
+  .btn.orange:active { box-shadow: 0 1px 0 #b37400; }
+  .btn.small { font-size: 14px; padding: 9px 18px; letter-spacing: 2px; }
+
+  /* ---------- 换牌面板 ---------- */
+  .panel { background: rgba(55,66,68,.94); border: 2px solid rgba(255,255,255,.9);
+           border-radius: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.45);
+           padding: 16px; margin-top: 16px; }
+  .picker-title { font-size: 14px; letter-spacing: 2px; margin-bottom: 10px; opacity: .95;
+                  text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+  .picker-title b { color: #FFD54A; }
+  .opt-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .opt-row:last-child { margin-bottom: 0; }
+  .opt { font-family: inherit; min-width: 44px; height: 42px; padding: 0 10px; font-size: 17px; font-weight: 900;
+         border-radius: 10px; cursor: pointer; background: #4F6367; color: #F5F0E8;
+         border: 2px solid rgba(255,255,255,.55); box-shadow: 0 3px 0 #2b3436;
+         transition: transform .07s, box-shadow .07s, background .15s; }
+  .opt:active { transform: translateY(3px); box-shadow: 0 0 0 #2b3436; }
+  .opt.on { background: #FDA200; border-color: #fff; box-shadow: 0 3px 0 #b37400, 0 0 12px rgba(253,162,0,.7); }
+  .opt.suit { font-size: 22px; }
+
+  /* ---------- 答案面板 ---------- */
+  .sol-head { font-size: 15px; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
+  .sol-head b { color: #4BC292; font-size: 22px; }
+  .sol-main { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
+  .nav { width: 46px; height: 46px; border-radius: 50%; font-size: 18px; cursor: pointer; flex: none;
+         background: #009DFF; color: #fff; border: 2px solid rgba(255,255,255,.85);
+         box-shadow: 0 3px 0 #046aa8; }
+  .nav:active { transform: translateY(3px); box-shadow: none; }
+  .sol-expr { flex: 1; text-align: center; font-size: clamp(24px, 6vw, 36px); font-weight: 900;
+              letter-spacing: 2px; color: #FFD54A; text-shadow: 2px 2px 0 rgba(0,0,0,.75);
+              background: rgba(0,0,0,.28); border-radius: 12px; padding: 14px 10px; min-height: 1.4em; }
+  .sol-actions { display: flex; justify-content: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
+  .sol-list { margin-top: 12px; max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .sol-item { background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.25); border-radius: 10px;
+              padding: 9px 12px; font-size: 17px; font-weight: 700; letter-spacing: 1px; cursor: pointer;
+              text-shadow: 1px 1px 0 rgba(0,0,0,.6); }
+  .sol-item:hover { background: rgba(255,255,255,.12); }
+  .sol-item.cur { border-color: #FFD54A; color: #FFD54A; }
+  .no-sol { text-align: center; font-size: 17px; font-weight: 700; letter-spacing: 2px; color: #FE5F55;
+            text-shadow: 2px 2px 0 rgba(0,0,0,.6); padding: 10px 0 4px; }
+
+  .hint { text-align: center; margin-top: 18px; font-size: 13px; letter-spacing: 2px; opacity: .85;
+          text-shadow: 2px 2px 0 rgba(0,0,0,.7); }
+  footer { text-align: center; margin-top: 26px; font-size: 12px; letter-spacing: 3px; opacity: .6;
+           text-shadow: 1px 1px 0 rgba(0,0,0,.7); }
+
+  /* ---------- 浅色模式 ---------- */
+  html[data-theme="light"] body { color: #374244; }
+  html[data-theme="light"] #bgDim { background: rgba(245,240,232,.62); }
+  html[data-theme="light"] .title h1 { text-shadow: 0 2px 0 #FE5F55, 0 4px 0 #a33327, 3px 7px 10px rgba(0,0,0,.25); }
+  html[data-theme="light"] .title p { color: #374244; text-shadow: none; }
+  html[data-theme="light"] .panel { background: rgba(245,240,232,.96); border-color: #374244; }
+  html[data-theme="light"] .picker-title { text-shadow: none; color: #374244; }
+  html[data-theme="light"] .opt { background: #dfe5e6; color: #374244; border-color: #9fb0b3; box-shadow: 0 3px 0 #9fb0b3; }
+  html[data-theme="light"] .opt.on { background: #FDA200; color: #fff; }
+  html[data-theme="light"] .sol-head { text-shadow: none; color: #374244; }
+  html[data-theme="light"] .sol-expr { background: rgba(55,66,68,.08); text-shadow: none; }
+  html[data-theme="light"] .sol-item { background: rgba(55,66,68,.06); border-color: rgba(55,66,68,.25);
+                                       text-shadow: none; color: #374244; }
+  html[data-theme="light"] .sol-item.cur { color: #b37400; border-color: #FDA200; }
+  html[data-theme="light"] .hint, html[data-theme="light"] footer { color: #374244; text-shadow: none; }
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="bgDim"></div>
+<div id="crt"></div>
+<canvas id="fx"></canvas>
+
+<div class="wrap">
+  <header>
+    <div class="title">
+      <h1>24点</h1>
+      <p>纸 牌 求 解 器</p>
+    </div>
+    <div class="top-btns">
+      <button class="icon-btn" id="soundBtn" title="音效开关">🔊</button>
+      <button class="icon-btn" id="themeBtn" title="浅色/深色">🌙</button>
+    </div>
+  </header>
+
+  <section class="table" id="table">
+    <div class="cards" id="cards"></div>
+  </section>
+
+  <div class="controls">
+    <button class="btn blue" id="dealBtn">🎲 随机发牌</button>
+    <button class="btn green" id="solveBtn">⚡ 求解</button>
+  </div>
+
+  <section class="panel" id="pickerPanel">
+    <div class="picker-title">点第 <b id="pickSlot">1</b> 张牌换牌 &nbsp;·&nbsp; 点击牌面选中</div>
+    <div class="opt-row" id="rankRow"></div>
+    <div class="opt-row" id="suitRow"></div>
+  </section>
+
+  <section class="panel" id="solPanel" hidden>
+    <div class="sol-head">共找到 <b id="solCount">0</b> 种解法</div>
+    <div class="sol-main" id="solMain">
+      <button class="nav" id="prevSol">◀</button>
+      <div class="sol-expr" id="solExpr">—</div>
+      <button class="nav" id="nextSol">▶</button>
+    </div>
+    <div class="sol-actions">
+      <button class="btn orange small" id="copySol">📋 复制算式</button>
+      <button class="btn blue small" id="toggleAll">展开全部</button>
+    </div>
+    <div class="sol-list" id="solList" hidden></div>
+    <div class="no-sol" id="noSol" hidden>这组牌无解 😅 换一组试试吧</div>
+  </section>
+
+  <div class="hint">A=1 · J=11 · Q=12 · K=13 &nbsp;&nbsp;|&nbsp;&nbsp; 点击牌可换牌</div>
+  <footer>24 点纸牌求解器 · 祝好运 🍀</footer>
+</div>
+
+<script>
+"use strict";
+/* ================= 工具 ================= */
+const $ = id => document.getElementById(id);
+const RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+const rankVal = r => r==="A"?1 : r==="J"?11 : r==="Q"?12 : r==="K"?13 : parseInt(r,10);
+const SUITS = [
+  { s:"♠", cls:"black" }, { s:"♥", cls:"red" },
+  { s:"♦", cls:"red" },  { s:"♣", cls:"black" },
+];
+const rnd = n => Math.floor(Math.random()*n);
+
+/* ================= WebGL 红蓝漩涡背景 ================= */
+(function initBG(){
+  const cv = $("bg");
+  let gl;
+  try { gl = cv.getContext("webgl", {antialias:false}) || cv.getContext("experimental-webgl"); }
+  catch(e){ gl = null; }
+  if(!gl){ document.body.style.background = "linear-gradient(135deg,#3a1c2e,#102a4a)"; return; }
+  const VS = "attribute vec2 a_pos; void main(){ gl_Position = vec4(a_pos,0.0,1.0); }";
+  const FS = [
+    "precision mediump float;",
+    "uniform vec2 u_res; uniform float u_time; uniform vec3 u_c1; uniform vec3 u_c2;",
+    "void main(){",
+    "  vec2 uv = (gl_FragCoord.xy - 0.5*u_res)/u_res.y;",
+    "  vec2 p = uv;",
+    "  float t = u_time*0.10;",
+    "  for(int i=0;i<3;i++){",
+    "    float fi = float(i);",
+    "    p += 0.25*vec2(cos(t*1.7+fi*2.1+p.y*2.0), sin(t*1.3-fi*1.7+p.x*2.0));",
+    "    float r = length(p)+1e-4;",
+    "    float a = atan(p.y,p.x) + 0.42/(r+0.35) + t*(0.25+0.10*fi);",
+    "    p = vec2(cos(a),sin(a))*r;",
+    "  }",
+    "  float w = sin(p.x*4.0 + t*2.0)*sin(p.y*4.0 - t*1.6);",
+    "  float m = smoothstep(-0.9,0.9,w);",
+    "  vec3 deep = vec3(0.10,0.05,0.12);",
+    "  vec3 col = mix(deep, u_c1, smoothstep(0.05,0.90,m));",
+    "  col = mix(col, u_c2, smoothstep(0.10,0.95,1.0-m)*0.85);",
+    "  float vig = 1.0 - 0.55*dot(uv*0.7, uv*0.7);",
+    "  gl_FragColor = vec4(col*vig, 1.0);",
+    "}"
+  ].join("\n");
+  function sh(type, src){
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ return null; }
+    return s;
+  }
+  const vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+  if(!vs || !fs) return;
+  const pr = gl.createProgram();
+  gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+  if(!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
+  gl.useProgram(pr);
+  const buf = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+  const loc = gl.getAttribLocation(pr, "a_pos");
+  gl.enableVertexAttribArray(loc);
+  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+  const uRes = gl.getUniformLocation(pr, "u_res");
+  const uTime = gl.getUniformLocation(pr, "u_time");
+  gl.uniform3f(gl.getUniformLocation(pr, "u_c1"), 0xFE/255, 0x5F/255, 0x55/255);
+  gl.uniform3f(gl.getUniformLocation(pr, "u_c2"), 0x00/255, 0x9D/255, 0xFF/255);
+  function resize(){
+    const w = Math.max(2, Math.floor(innerWidth/3)), h = Math.max(2, Math.floor(innerHeight/3));
+    if(cv.width!==w || cv.height!==h){ cv.width=w; cv.height=h; gl.viewport(0,0,w,h); }
+    gl.uniform2f(uRes, w, h);
+  }
+  addEventListener("resize", resize); resize();
+  const t0 = performance.now();
+  (function frame(){
+    gl.uniform1f(uTime, (performance.now()-t0)/1000);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    requestAnimationFrame(frame);
+  })();
+})();
+
+/* ================= WebAudio 合成音效 ================= */
+const AudioFX = (function(){
+  let ctx = null, enabled = true;
+  function ac(){
+    if(!ctx){ try{ ctx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} }
+    if(ctx && ctx.state==="suspended") ctx.resume();
+    return ctx;
+  }
+  function tone(f0, f1, dur, type, vol, delay){
+    if(!enabled) return; const c = ac(); if(!c) return;
+    const t = c.currentTime + (delay||0);
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type||"square"; o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(1,f1), t+dur);
+    g.gain.setValueAtTime(vol||0.12, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t); o.stop(t+dur+0.02);
+  }
+  return {
+    click(){ tone(700,350,0.07,"square",0.10); },
+    select(){ tone(500,920,0.09,"triangle",0.12); },
+    deal(i){ tone(420+i*90, 900+i*90, 0.10, "triangle", 0.10, i*0.07); },
+    success(){ [523,659,784,1047].forEach((f,i)=>tone(f, f*1.01, 0.14, "triangle", 0.13, i*0.09)); },
+    error(){ tone(220,110,0.22,"sawtooth",0.10); },
+    toggle(){ enabled = !enabled; return enabled; },
+    get enabled(){ return enabled; }
+  };
+})();
+
+/* ================= 2D 粒子：纸屑 / 爆裂 ================= */
+const FX = (function(){
+  const cv = $("fx"), ctx = cv.getContext("2d");
+  let parts = [], running = false;
+  const PALETTE = ["#FE5F55","#009DFF","#F3B958","#4BC292","#FDA200","#F5F0E8","#8867A5"];
+  function resize(){ cv.width = innerWidth; cv.height = innerHeight; }
+  addEventListener("resize", resize); resize();
+  function loop(){
+    if(!parts.length){ running = false; ctx.clearRect(0,0,cv.width,cv.height); return; }
+    running = true;
+    ctx.clearRect(0,0,cv.width,cv.height);
+    const now = performance.now();
+    parts = parts.filter(p => now < p.die);
+    for(const p of parts){
+      const k = 1-(p.die-now)/p.life;
+      ctx.save();
+      ctx.globalAlpha = 1-k;
+      ctx.translate(p.x + p.vx*k*p.life/60, p.y + p.vy*k*p.life/60 + 320*k*k);
+      ctx.rotate(p.rot + k*p.vr);
+      ctx.fillStyle = p.color;
+      if(p.circle){ ctx.beginPath(); ctx.arc(0,0,p.size/2,0,7); ctx.fill(); }
+      else ctx.fillRect(-p.size/2, -p.size/3, p.size, p.size*0.66);
+      ctx.restore();
+    }
+    requestAnimationFrame(loop);
+  }
+  function kick(){ if(!running) loop(); }
+  return {
+    confetti(n){
+      const now = performance.now();
+      for(let i=0;i<(n||90);i++){
+        parts.push({ x: Math.random()*cv.width, y: -20-Math.random()*cv.height*0.3,
+          vx:(Math.random()-0.5)*160, vy: 120+Math.random()*160,
+          size: 6+Math.random()*8, color: PALETTE[rnd(PALETTE.length)],
+          rot: Math.random()*6.28, vr:(Math.random()-0.5)*0.4,
+          circle: Math.random()<0.3, die: now+2200+Math.random()*1200, life: 2800 });
+      }
+      kick();
+    },
+    burst(x, y, n, colors){
+      const now = performance.now(), cs = colors||["#FFD54A","#FFF6C9","#FDA200","#ffffff"];
+      for(let i=0;i<(n||26);i++){
+        const a = Math.random()*6.283, sp = 90+Math.random()*260;
+        parts.push({ x, y, vx: Math.cos(a)*sp, vy: Math.sin(a)*sp-60,
+          size: 3+Math.random()*5, color: cs[rnd(cs.length)],
+          rot: 0, vr: 0, circle: true, die: now+450+Math.random()*250, life: 600 });
+      }
+      kick();
+    }
+  };
+})();
+
+/* ================= 24 点求解器 =================
+   穷举: 4! 排列 × 4^3 运算符 × 5 种二叉树结构
+   分数运算避免浮点误差；加/乘按交换律+结合律去重，减/除保留方向；
+   只保留数学上必需的括号。 */
+function gcd(a,b){ return b?gcd(b,a%b):a; }
+function normF(f){
+  if(!f || f.d===0) return null;
+  let n=f.n, d=f.d;
+  if(d<0){ n=-n; d=-d; }
+  const g = gcd(Math.abs(n), d) || 1;
+  return { n:n/g, d:d/g };
+}
+const fAdd=(a,b)=>normF({n:a.n*b.d+b.n*a.d, d:a.d*b.d});
+const fSub=(a,b)=>normF({n:a.n*b.d-b.n*a.d, d:a.d*b.d});
+const fMul=(a,b)=>normF({n:a.n*b.n,     d:a.d*b.d});
+const fDiv=(a,b)=> b.n===0 ? null : normF({n:a.n*b.d, d:a.d*b.n});
+function applyOp(op,l,r){
+  if(!l||!r) return null;
+  const lv=l.v, rv=r.v; if(!lv||!rv) return null;
+  const v = op==="+"?fAdd(lv,rv) : op==="-"?fSub(lv,rv) : op==="*"?fMul(lv,rv) : fDiv(lv,rv);
+  if(!v) return null;
+  return { op, left:l, right:r, v, label:"" };
+}
+function leaf(rank){ return { v:normF({n:rankVal(rank),d:1}), label:rank, num:String(rankVal(rank)) }; }
+
+function permutations(arr){
+  const out=[];
+  (function go(rest, path){
+    if(!rest.length){ out.push(path.slice()); return; }
+    for(let i=0;i<rest.length;i++){
+      path.push(rest[i]);
+      go(rest.slice(0,i).concat(rest.slice(i+1)), path);
+      path.pop();
+    }
+  })(arr, []);
+  return out;
+}
+/* 加/乘规范形: 拍平同级运算后排序, 用于去重 */
+function collectSame(t, op, out){
+  if(t.op===op){ collectSame(t.left,op,out); collectSame(t.right,op,out); }
+  else out.push(t);
+}
+function canon(t){
+  if(!t.op) return "v"+t.v.n+"/"+t.v.d;
+  if(t.op==="+"||t.op==="*"){
+    const parts=[]; collectSame(t,t.op,parts);
+    return "("+parts.map(canon).sort().join(t.op)+")";
+  }
+  return "("+canon(t.left)+t.op+canon(t.right)+")";
+}
+const PREC = {"+":1,"-":1,"*":2,"/":2};
+const SYM_DISP = {"+":"+","-":"−","*":"×","/":"÷"};
+const SYM_COPY = {"+":"+","-":"-","*":"*","/":"/"};
+function render(t, sym, leafFn, parentOp, isRight){
+  if(!t.op) return leafFn(t);
+  const s = render(t.left,sym,leafFn,t.op,false)+sym[t.op]+render(t.right,sym,leafFn,t.op,true);
+  if(parentOp){
+    const p=PREC[t.op], pp=PREC[parentOp];
+    if(p<pp) return "("+s+")";
+    if(p===pp && isRight && (parentOp==="-"||parentOp==="/")) return "("+s+")";
+  }
+  return s;
+}
+function solve24(cards){
+  const vals = cards.map(c=>leaf(c.rank));
+  const ops = ["+","-","*","/"];
+  const seen = new Map();
+  for(const p of permutations([0,1,2,3])){
+    const a=vals[p[0]], b=vals[p[1]], c=vals[p[2]], d=vals[p[3]];
+    for(const o1 of ops) for(const o2 of ops) for(const o3 of ops){
+      const trees = [
+        applyOp(o3, applyOp(o2, applyOp(o1,a,b), c), d),
+        applyOp(o3, applyOp(o2, a, applyOp(o1,b,c)), d),
+        applyOp(o1, a, applyOp(o3, applyOp(o2,b,c), d)),
+        applyOp(o1, a, applyOp(o2, b, applyOp(o3,c,d))),
+        applyOp(o2, applyOp(o1,a,b), applyOp(o3,c,d)),
+      ];
+      for(const t of trees){
+        if(!t||!t.v) continue;
+        if(t.v.n===24 && t.v.d===1){
+          const key = canon(t);
+          if(!seen.has(key)) seen.set(key, t);
+        }
+      }
+    }
+  }
+  const sols = [...seen.values()].map(t=>({
+    display: render(t, SYM_DISP, x=>x.label, null, false),
+    copy: render(t, SYM_COPY, x=>x.num, null, false),
+  }));
+  sols.sort((x,y)=> x.display.length-y.display.length || (x.display<y.display?-1:1));
+  const uniq = [], seenCopy = new Set();
+  for(const s of sols){ if(!seenCopy.has(s.copy)){ seenCopy.add(s.copy); uniq.push(s); } }
+  return uniq;
+}
+
+/* ================= 界面逻辑 ================= */
+const state = {
+  cards: [ {rank:"A",suit:0}, {rank:"5",suit:1}, {rank:"9",suit:2}, {rank:"K",suit:3} ],
+  selected: 0,
+  sols: [], solIdx: 0,
+};
+function cardEl(i){ return $("cards").children[i]; }
+
+function buildCards(){
+  const box = $("cards"); box.innerHTML = "";
+  state.cards.forEach((c,i)=>{
+    const el = document.createElement("div");
+    el.className = "card" + (i===state.selected ? " selected" : "");
+    el.innerHTML =
+      '<div class="card-inner"><div class="foil"></div>' +
+      '<div class="card-face">' +
+        '<div class="corner top"><div class="rank"></div><div class="suit"></div></div>' +
+        '<div class="pip"></div>' +
+        '<div class="corner bottom"><div class="rank"></div><div class="suit"></div></div>' +
+      "</div></div>";
+    el.addEventListener("click", ()=>{ selectSlot(i, true); });
+    el.addEventListener("mousemove", e=>{
+      const r = el.getBoundingClientRect();
+      const px = (e.clientX-r.left)/r.width - 0.5, py = (e.clientY-r.top)/r.height - 0.5;
+      el.querySelector(".card-inner").style.transform =
+        "rotateY("+(px*14).toFixed(1)+"deg) rotateX("+(-py*12).toFixed(1)+"deg) translateY(-6px)";
+    });
+    el.addEventListener("mouseleave", ()=>{
+      el.querySelector(".card-inner").style.transform = "";
+    });
+    box.appendChild(el);
+    paintCard(i);
+  });
+}
+function paintCard(i){
+  const c = state.cards[i], el = cardEl(i), st = SUITS[c.suit];
+  el.querySelectorAll(".corner .rank").forEach(n=>{ n.textContent=c.rank; n.className="rank "+st.cls; });
+  el.querySelectorAll(".corner .suit").forEach(n=>{ n.textContent=st.s; n.className="suit "+st.cls; });
+  const pip = el.querySelector(".pip");
+  pip.textContent = st.s; pip.className = "pip "+st.cls;
+}
+function flipTo(i){
+  const el = cardEl(i), inner = el.querySelector(".card-inner");
+  inner.style.transition = "transform .14s ease-in";
+  inner.style.transform = "scaleX(0)";
+  setTimeout(()=>{
+    paintCard(i);
+    inner.style.transition = "transform .18s cubic-bezier(.2,1.4,.4,1)";
+    inner.style.transform = "scaleX(1)";
+    setTimeout(()=>{ inner.style.transition=""; inner.style.transform=""; }, 200);
+  }, 140);
+}
+function selectSlot(i, sound){
+  state.selected = i;
+  [...$("cards").children].forEach((el,k)=>el.classList.toggle("selected", k===i));
+  $("pickSlot").textContent = i+1;
+  syncPicker();
+  if(sound){ AudioFX.select(); sparkleOn(i, 4); }
+}
+function randomCard(){ return { rank: RANKS[rnd(13)], suit: rnd(4) }; }
+
+function deal(){
+  AudioFX.click();
+  state.cards = [randomCard(),randomCard(),randomCard(),randomCard()];
+  hideSolutions();
+  const box = $("cards");
+  [...box.children].forEach((el,i)=>{
+    el.classList.remove("deal-in"); void el.offsetWidth;
+    el.style.animationDelay = "";
+    el.classList.add("deal-in");
+    el.style.animationDelay = (i*0.12)+"s";
+    setTimeout(()=>{ paintCard(i); AudioFX.deal(i); }, 60+i*120);
+    setTimeout(()=>{ el.classList.remove("deal-in"); el.style.animationDelay=""; }, 900+i*120);
+  });
+  selectSlot(state.selected, false);
+}
+
+/* ---- 换牌选择器 ---- */
+function buildPicker(){
+  const rr = $("rankRow"); rr.innerHTML = "";
+  RANKS.forEach(r=>{
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = r; b.dataset.rank = r;
+    b.addEventListener("click", ()=>{
+      const i = state.selected;
+      if(state.cards[i].rank!==r){ state.cards[i].rank = r; flipTo(i); AudioFX.click(); hideSolutions(); }
+      syncPicker();
+    });
+    rr.appendChild(b);
+  });
+  const sr = $("suitRow"); sr.innerHTML = "";
+  SUITS.forEach((st,idx)=>{
+    const b = document.createElement("button");
+    b.className = "opt suit "+st.cls; b.textContent = st.s; b.dataset.suit = idx;
+    b.addEventListener("click", ()=>{
+      const i = state.selected;
+      if(state.cards[i].suit!==idx){ state.cards[i].suit = idx; flipTo(i); AudioFX.click(); hideSolutions(); }
+      syncPicker();
+    });
+    sr.appendChild(b);
+  });
+  syncPicker();
+}
+function syncPicker(){
+  const c = state.cards[state.selected];
+  [...$("rankRow").children].forEach(b=>b.classList.toggle("on", b.dataset.rank===c.rank));
+  [...$("suitRow").children].forEach(b=>b.classList.toggle("on", +b.dataset.suit===c.suit));
+}
+
+/* ---- 求解与答案展示 ---- */
+function solve(){
+  AudioFX.click();
+  const t0 = performance.now();
+  const sols = solve24(state.cards);
+  state.sols = sols; state.solIdx = 0;
+  const panel = $("solPanel");
+  panel.hidden = false;
+  if(sols.length){
+    $("solCount").textContent = sols.length;
+    $("solMain").style.display = ""; $("solCount").parentElement.style.display = "";
+    qs(".sol-actions").style.display = "";
+    $("noSol").hidden = true; $("solList").hidden = true;
+    $("toggleAll").textContent = "展开全部";
+    showSol(0);
+    AudioFX.success();
+    FX.confetti(110);
+    const r = $("solveBtn").getBoundingClientRect();
+    FX.burst(r.left+r.width/2, r.top, 30);
+  } else {
+    $("solMain").style.display = "none";
+    document.querySelector(".sol-actions").style.display = "none";
+    document.querySelector(".sol-head").style.display = "none";
+    $("noSol").hidden = false;
+    AudioFX.error();
+    $("table").classList.remove("shake"); void $("table").offsetWidth;
+    $("table").classList.add("shake");
+  }
+  panel.scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+function qs(s){ return document.querySelector(s); }
+function showSol(i){
+  const sols = state.sols;
+  if(!sols.length) return;
+  state.solIdx = (i+sols.length)%sols.length;
+  $("solExpr").textContent = sols[state.solIdx].display + " = 24";
+  [...$("solList").children].forEach((el,k)=>el.classList.toggle("cur", k===state.solIdx));
+}
+function hideSolutions(){
+  $("solPanel").hidden = true;
+  $("solMain").style.display = ""; $("solCount").parentElement.style.display = "";
+  document.querySelector(".sol-actions").style.display = "";
+  document.querySelector(".sol-head").style.display = "";
+}
+
+/* ---- 牌面闪光(✦) ---- */
+function sparkleOn(i, n){
+  const el = cardEl(i); if(!el) return;
+  const inner = el.querySelector(".card-inner");
+  for(let k=0;k<(n||2);k++){
+    const s = document.createElement("span");
+    s.className = "spark"; s.textContent = "✦";
+    s.style.left = (12+Math.random()*76)+"%";
+    s.style.top = (15+Math.random()*65)+"%";
+    s.style.fontSize = (10+Math.random()*10)+"px";
+    s.style.animationDelay = (Math.random()*0.35)+"s";
+    inner.appendChild(s);
+    setTimeout(()=>s.remove(), 1400);
+  }
+}
+setInterval(()=>{
+  const i = rnd(4);
+  sparkleOn(i, i===state.selected ? 3 : 1);
+}, 1400);
+
+/* ---- 顶栏按钮 ---- */
+$("soundBtn").addEventListener("click", ()=>{
+  const on = AudioFX.toggle();
+  $("soundBtn").textContent = on ? "🔊" : "🔇";
+  if(on) AudioFX.click();
+});
+$("themeBtn").addEventListener("click", ()=>{
+  const html = document.documentElement;
+  const light = html.dataset.theme!=="light";
+  html.dataset.theme = light ? "light" : "dark";
+  $("themeBtn").textContent = light ? "☀️" : "🌙";
+  AudioFX.click();
+});
+$("dealBtn").addEventListener("click", deal);
+$("solveBtn").addEventListener("click", solve);
+$("prevSol").addEventListener("click", ()=>{ AudioFX.click(); showSol(state.solIdx-1); });
+$("nextSol").addEventListener("click", ()=>{ AudioFX.click(); showSol(state.solIdx+1); });
+$("copySol").addEventListener("click", async ()=>{
+  const s = state.sols[state.solIdx]; if(!s) return;
+  const txt = s.copy + " = 24";
+  try { await navigator.clipboard.writeText(txt); }
+  catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand("copy"); ta.remove();
+  }
+  const b = $("copySol"); const old = b.textContent;
+  b.textContent = "✅ 已复制"; AudioFX.select();
+  setTimeout(()=>{ b.textContent = old; }, 1200);
+});
+$("toggleAll").addEventListener("click", ()=>{
+  const list = $("solList"), hidden = list.hidden;
+  if(hidden){
+    list.innerHTML = "";
+    state.sols.forEach((s,i)=>{
+      const d = document.createElement("div");
+      d.className = "sol-item"+(i===state.solIdx?" cur":"");
+      d.textContent = (i+1)+".  "+s.display+" = 24";
+      d.addEventListener("click", ()=>{ AudioFX.click(); showSol(i); });
+      list.appendChild(d);
+    });
+    list.hidden = false; $("toggleAll").textContent = "收起";
+  } else { list.hidden = true; $("toggleAll").textContent = "展开全部"; }
+  AudioFX.click();
+});
+
+/* ---- 初始化 ---- */
+buildCards();
+buildPicker();
+selectSlot(0, false);
+setTimeout(()=>{ sparkleOn(0,3); sparkleOn(1,2); }, 600);
+</script>
+</body>
+</html>
