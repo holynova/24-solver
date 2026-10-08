@@ -1,208 +1,190 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="dark">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>24点 · 纸牌求解器</title>
+<title>凑出 24 · 纸牌求解器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   html { -webkit-text-size-adjust: 100%; }
   body {
     font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
-    color: #F5F0E8;
+    color: #f5ecd7;
     min-height: 100vh;
     overflow-x: hidden;
-    background: #14101c;
+    background: #2a1220;
   }
-  /* ---------- 背景层 ---------- */
-  #bg { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0;
-        image-rendering: pixelated; }
-  #bgDim { position: fixed; inset: 0; z-index: 1; pointer-events: none;
-           background: rgba(255,255,255,0); transition: background .4s; }
-  #crt { position: fixed; inset: 0; z-index: 2; pointer-events: none;
-         background: repeating-linear-gradient(to bottom, rgba(0,0,0,.055) 0 1px, transparent 1px 3px); }
-  #crt::after { content: ""; position: absolute; inset: 0;
-         background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.38) 100%); }
+  .px { font-family: "Press Start 2P", "PingFang SC", monospace; }
+
+  /* ---------- 背景 ---------- */
+  .bg { position: fixed; inset: 0; z-index: 0;
+    background: radial-gradient(120% 90% at 50% 0%, #5e2740 0%, #3c1a2c 45%, #200d18 100%);
+  }
+  .bg::after { content: ""; position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(to right, rgba(255,255,255,.045) 0 1px, transparent 1px 56px),
+      repeating-linear-gradient(to bottom, rgba(255,255,255,.045) 0 1px, transparent 1px 56px);
+  }
+  .bg::before { content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.5) 100%);
+  }
   #fx { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
 
   .wrap { position: relative; z-index: 10; max-width: 860px; margin: 0 auto;
-          padding: 20px 16px 60px; }
+          padding: 18px 14px 70px; }
 
   /* ---------- 顶栏 ---------- */
-  header { display: flex; align-items: flex-start; justify-content: space-between;
-           gap: 12px; margin-bottom: 14px; }
-  .title h1 { margin: 0; font-size: clamp(40px, 8vw, 64px); font-weight: 900;
-              letter-spacing: 4px; color: #F3B958;
-              text-shadow: 0 2px 0 #FE5F55, 0 4px 0 #a33327, 3px 7px 10px rgba(0,0,0,.55); }
-  .title p { margin: 6px 0 0; font-size: 14px; letter-spacing: 6px; color: #F5F0E8;
-             text-shadow: 2px 2px 0 rgba(0,0,0,.8); opacity: .9; }
-  .top-btns { display: flex; gap: 8px; padding-top: 8px; }
-  .icon-btn { width: 42px; height: 42px; border-radius: 12px; cursor: pointer;
-              background: #374244; color: #F5F0E8; font-size: 20px;
-              border: 2px solid rgba(255,255,255,.85);
-              box-shadow: 0 3px 0 #222d2f; transition: transform .08s, box-shadow .08s; }
-  .icon-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #222d2f; }
+  .top { display: flex; align-items: flex-start; justify-content: space-between;
+         gap: 10px; margin-bottom: 10px; }
+  .banner { background: #101014; border: 3px solid #000; border-radius: 6px;
+            padding: 12px 14px 10px; position: relative;
+            box-shadow: 0 4px 0 rgba(0,0,0,.5); max-width: 62%; }
+  .banner::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -3px;
+                   height: 5px; background: #3d9be9; }
+  .banner .px { font-size: clamp(11px, 2.6vw, 16px); color: #fff; line-height: 1.7;
+                text-shadow: 2px 0 0 rgba(255,60,60,.75), -2px 0 0 rgba(60,180,255,.75); }
+  .title { margin: 0; text-align: right; line-height: 1.15; flex-shrink: 0; }
+  .title .t1 { display: block; font-size: clamp(30px, 8vw, 46px); font-weight: 900;
+               letter-spacing: 6px; color: #ffd94a;
+               text-shadow: 3px 3px 0 #a32424, 6px 6px 0 rgba(0,0,0,.45); }
+  .title .t2 { display: block; font-size: clamp(38px, 10vw, 58px); font-weight: 900;
+               color: #ffd94a; text-shadow: 3px 3px 0 #a32424, 6px 6px 0 rgba(0,0,0,.45); }
 
   /* ---------- 牌桌 ---------- */
-  .table { background: radial-gradient(ellipse at 50% 35%, #35955c 0%, #237a46 55%, #175c33 100%);
-           border: 6px solid #6b4a2a; border-radius: 22px;
-           box-shadow: inset 0 0 60px rgba(0,0,0,.35), 0 10px 30px rgba(0,0,0,.5);
-           padding: 26px 18px 22px; position: relative; }
-  .table::before { content: ""; position: absolute; inset: 8px; border-radius: 15px;
-                   border: 2px dashed rgba(255,255,255,.18); pointer-events: none; }
-  .cards { display: flex; justify-content: center; gap: clamp(8px, 2.5vw, 22px);
-           flex-wrap: wrap; perspective: 900px; }
+  .table { background-color: #2f6b52; border: 4px solid #14231c; border-radius: 22px;
+           padding: 18px 14px 22px; position: relative;
+           background-image: radial-gradient(rgba(255,255,255,.07) 1.5px, transparent 1.6px);
+           background-size: 18px 18px;
+           box-shadow: 0 8px 0 rgba(0,0,0,.45), inset 0 0 0 3px rgba(255,255,255,.06); }
+  .hint-pill { display: table; margin: 0 auto 16px; background: #1c2a24;
+               border: 3px solid #0e1512; border-radius: 12px; padding: 10px 20px;
+               font-size: 17px; font-weight: 900; letter-spacing: 3px; color: #f5ecd7;
+               box-shadow: 0 4px 0 rgba(0,0,0,.4); }
 
-  /* ---------- 牌 ---------- */
-  .card { width: clamp(104px, 22vw, 132px); aspect-ratio: 5/7; cursor: pointer;
-          animation: sway 5s ease-in-out infinite; }
-  .card:nth-child(2) { animation-delay: -1.2s; }
-  .card:nth-child(3) { animation-delay: -2.6s; }
-  .card:nth-child(4) { animation-delay: -3.8s; }
-  @keyframes sway { 0%,100% { transform: rotate(-1.1deg); } 50% { transform: rotate(1.1deg); } }
-  .card-inner { position: relative; width: 100%; height: 100%; border-radius: 12px;
-                transform-style: preserve-3d; transition: transform .18s ease; }
-  .card-face { position: absolute; inset: 0; z-index: 2; border-radius: 12px;
-               background: linear-gradient(160deg, #fffdf6 0%, #f7f1e3 100%);
-               border: 3px solid #2e3a3d;
-               box-shadow: 0 6px 14px rgba(0,0,0,.45);
-               overflow: hidden; }
-  .foil { position: absolute; inset: 0; z-index: 1; border-radius: 12px; pointer-events: none;
-          background: linear-gradient(115deg, transparent 15%, rgba(255,0,128,.28) 32%,
-                      rgba(255,215,0,.32) 45%, rgba(0,220,255,.30) 58%, rgba(150,80,255,.26) 68%, transparent 82%);
-          background-size: 280% 280%; opacity: .55;
-          animation: foilSweep 4.5s linear infinite; }
-  @keyframes foilSweep { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
-  .card.selected .card-inner { outline: 3px solid #FFD54A; outline-offset: 2px;
-          box-shadow: 0 0 22px rgba(255,213,74,.85), 0 6px 14px rgba(0,0,0,.45); }
-  .card.selected .foil { opacity: .85; animation-duration: 2.2s; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 18px; }
+  .card { aspect-ratio: 3 / 4.15; cursor: pointer; }
+  .card-inner { position: relative; width: 100%; height: 100%;
+                transform-style: preserve-3d; transition: transform .15s ease; }
+  .card-face { position: absolute; inset: 0; border-radius: 14px;
+               background: repeating-linear-gradient(to bottom, #faf3dc 0 5px, #e9dcc0 5px 6px);
+               border: 4px solid #14100c;
+               box-shadow: 0 6px 0 rgba(0,0,0,.45);
+               overflow: hidden; transition: transform .15s ease, border-color .15s ease; }
+  .card.selected .card-face { border-color: #f5c542;
+               box-shadow: 0 6px 0 rgba(0,0,0,.45), 0 0 0 3px #f5c542, 0 0 22px rgba(245,197,66,.55);
+               transform: translateY(-6px); }
   .corner { position: absolute; display: flex; flex-direction: column; align-items: center;
             line-height: 1.05; font-weight: 900; }
-  .corner.top { top: 7px; left: 9px; }
-  .corner.bottom { bottom: 7px; right: 9px; transform: rotate(180deg); }
-  .corner .rank { font-size: clamp(22px, 5vw, 30px); letter-spacing: 0; }
-  .corner .suit { font-size: clamp(16px, 3.6vw, 21px); }
+  .corner.top { top: 6px; left: 8px; }
+  .corner.bottom { bottom: 6px; right: 8px; transform: rotate(180deg); }
+  .corner .rank { font-family: "Press Start 2P", monospace; font-size: clamp(13px, 3.4vw, 19px); }
+  .corner .suit { font-size: clamp(13px, 3.4vw, 19px); }
   .pip { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-         font-size: clamp(52px, 12vw, 72px); opacity: .92; }
-  .red { color: #d21f3c; } .black { color: #20242b; }
-  .card.deal-in { animation: dealIn .55s cubic-bezier(.2,1.35,.4,1) backwards, sway 5s ease-in-out infinite 0.6s; }
-  @keyframes dealIn { 0% { transform: translate(-38vw,-32vh) rotate(-35deg) scale(.5); opacity: 0; }
-                     100% { transform: translate(0,0) rotate(0) scale(1); opacity: 1; } }
+         font-size: clamp(44px, 11vw, 64px); }
+  .red { color: #d21f3c; } .black { color: #23262b; }
   .spark { position: absolute; z-index: 3; color: #fff; font-size: 14px; pointer-events: none;
            text-shadow: 0 0 6px #FFD54A, 0 0 3px #fff;
            animation: sparkUp .9s ease-out forwards; }
   @keyframes sparkUp { 0% { transform: scale(.3) translateY(0); opacity: 0; }
                        30% { opacity: 1; } 100% { transform: scale(1.25) translateY(-26px); opacity: 0; } }
+  .card.deal-in { animation: dealIn .5s cubic-bezier(.2,1.35,.4,1) backwards; }
+  @keyframes dealIn { 0% { transform: translate(-30vw,-28vh) rotate(-30deg) scale(.5); opacity: 0; }
+                      100% { transform: translate(0,0) rotate(0) scale(1); opacity: 1; } }
   .shake { animation: shakeX .35s; }
   @keyframes shakeX { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-7px)}
                       40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(3px)} }
 
-  /* ---------- 按钮 ---------- */
-  .controls { display: flex; justify-content: center; gap: 14px; margin: 20px 0 6px; flex-wrap: wrap; }
-  .btn { font-family: inherit; font-size: 18px; font-weight: 900; letter-spacing: 3px;
-         color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,.45);
-         padding: 13px 30px; border-radius: 14px; cursor: pointer;
-         border: 2px solid rgba(255,255,255,.9); transition: transform .08s, box-shadow .08s; }
-  .btn:active { transform: translateY(4px); }
-  .btn.blue { background: linear-gradient(#3db4ff, #009DFF); box-shadow: 0 5px 0 #046aa8, 0 8px 14px rgba(0,0,0,.4); }
-  .btn.blue:active { box-shadow: 0 1px 0 #046aa8; }
-  .btn.green { background: linear-gradient(#63d6a4, #4BC292); box-shadow: 0 5px 0 #2f8f66, 0 8px 14px rgba(0,0,0,.4); }
-  .btn.green:active { box-shadow: 0 1px 0 #2f8f66; }
-  .btn.orange { background: linear-gradient(#ffbe45, #FDA200); box-shadow: 0 5px 0 #b37400, 0 8px 14px rgba(0,0,0,.4); }
-  .btn.orange:active { box-shadow: 0 1px 0 #b37400; }
-  .btn.small { font-size: 14px; padding: 9px 18px; letter-spacing: 2px; }
+  /* ---------- chunky 按钮 ---------- */
+  .controls { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+  .btn { font-family: inherit; font-size: 19px; font-weight: 900; letter-spacing: 3px;
+         color: #fff; text-shadow: 2px 2px 0 rgba(0,0,0,.4);
+         padding: 14px 26px; border-radius: 12px; cursor: pointer;
+         border: 3px solid #14100c; box-shadow: 0 6px 0 #14100c;
+         transition: transform .07s, box-shadow .07s; }
+  .btn:active { transform: translateY(5px); box-shadow: 0 1px 0 #14100c; }
+  .btn.blue { background: linear-gradient(#5db4f5, #2f8fd8); }
+  .btn.red { background: linear-gradient(#f06060, #d63a3a); }
+  .btn.gold { background: linear-gradient(#ffcf5e, #ee9f1f); }
+  .btn.small { font-size: 14px; padding: 10px 18px; letter-spacing: 2px; }
+  .btn.ghost { background: #3a4750; }
 
-  /* ---------- 换牌面板 ---------- */
-  .panel { background: rgba(55,66,68,.94); border: 2px solid rgba(255,255,255,.9);
-           border-radius: 16px; box-shadow: 0 8px 22px rgba(0,0,0,.45);
-           padding: 16px; margin-top: 16px; }
-  .picker-title { font-size: 14px; letter-spacing: 2px; margin-bottom: 10px; opacity: .95;
+  /* ---------- 选牌面板 ---------- */
+  .panel { margin-top: 18px; background: #232d33; border: 4px solid #10181c;
+           border-radius: 18px; padding: 16px 14px 18px;
+           box-shadow: 0 8px 0 rgba(0,0,0,.45); }
+  .picker-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .picker-title { font-size: 21px; font-weight: 900; letter-spacing: 3px; color: #ffd94a;
                   text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
-  .picker-title b { color: #FFD54A; }
-  .opt-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .picker-note { font-size: 14px; color: #9fb0b8; letter-spacing: 1px; }
+  .dash { border: none; border-top: 3px dashed #3d4a52; margin: 4px 0 14px; }
+  .opt-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 9px; margin-bottom: 12px; }
   .opt-row:last-child { margin-bottom: 0; }
-  .opt { font-family: inherit; min-width: 44px; height: 42px; padding: 0 10px; font-size: 17px; font-weight: 900;
-         border-radius: 10px; cursor: pointer; background: #4F6367; color: #F5F0E8;
-         border: 2px solid rgba(255,255,255,.55); box-shadow: 0 3px 0 #2b3436;
-         transition: transform .07s, box-shadow .07s, background .15s; }
-  .opt:active { transform: translateY(3px); box-shadow: 0 0 0 #2b3436; }
-  .opt.on { background: #FDA200; border-color: #fff; box-shadow: 0 3px 0 #b37400, 0 0 12px rgba(253,162,0,.7); }
-  .opt.suit { font-size: 22px; }
+  .opt { font-family: "Press Start 2P", monospace; font-size: clamp(11px, 3vw, 15px);
+         padding: 12px 0; border-radius: 10px; cursor: pointer; text-align: center;
+         background: repeating-linear-gradient(to bottom, #faf3dc 0 4px, #e9dcc0 4px 5px);
+         border: 3px solid #14100c; box-shadow: 0 4px 0 #14100c;
+         transition: transform .07s, box-shadow .07s; color: #23262b; }
+  .opt:active { transform: translateY(3px); box-shadow: 0 1px 0 #14100c; }
+  .opt.on { background: #f5c542; box-shadow: 0 4px 0 #14100c, 0 0 14px rgba(245,197,66,.6); }
+  .opt.suit { font-size: clamp(16px, 4.4vw, 22px); padding: 9px 0; font-family: inherit; font-weight: 900; }
+  .row-label { grid-column: 1 / -1; font-size: 13px; font-weight: 900; letter-spacing: 4px;
+               color: #9fb0b8; margin: 2px 0 -4px; }
 
-  /* ---------- 答案面板 ---------- */
-  .sol-head { font-size: 15px; letter-spacing: 2px; margin-bottom: 12px; text-shadow: 2px 2px 0 rgba(0,0,0,.6); }
-  .sol-head b { color: #4BC292; font-size: 22px; }
-  .sol-main { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 12px; }
-  .nav { width: 46px; height: 46px; border-radius: 50%; font-size: 18px; cursor: pointer; flex: none;
-         background: #009DFF; color: #fff; border: 2px solid rgba(255,255,255,.85);
-         box-shadow: 0 3px 0 #046aa8; }
-  .nav:active { transform: translateY(3px); box-shadow: none; }
-  .sol-expr { flex: 1; text-align: center; font-size: clamp(24px, 6vw, 36px); font-weight: 900;
-              letter-spacing: 2px; color: #FFD54A; text-shadow: 2px 2px 0 rgba(0,0,0,.75);
-              background: rgba(0,0,0,.28); border-radius: 12px; padding: 14px 10px; min-height: 1.4em; }
-  .sol-actions { display: flex; justify-content: center; gap: 10px; margin-bottom: 4px; flex-wrap: wrap; }
-  .sol-list { margin-top: 12px; max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-  .sol-item { background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.25); border-radius: 10px;
-              padding: 9px 12px; font-size: 17px; font-weight: 700; letter-spacing: 1px; cursor: pointer;
-              text-shadow: 1px 1px 0 rgba(0,0,0,.6); }
-  .sol-item:hover { background: rgba(255,255,255,.12); }
-  .sol-item.cur { border-color: #FFD54A; color: #FFD54A; }
-  .no-sol { text-align: center; font-size: 17px; font-weight: 700; letter-spacing: 2px; color: #FE5F55;
-            text-shadow: 2px 2px 0 rgba(0,0,0,.6); padding: 10px 0 4px; }
+  /* ---------- 解法面板 ---------- */
+  .sol-head { font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #ffd94a;
+              text-shadow: 2px 2px 0 rgba(0,0,0,.6); margin-bottom: 12px; text-align: center; }
+  .sol-main { display: flex; align-items: stretch; gap: 10px; margin-bottom: 12px; }
+  .nav { flex-shrink: 0; width: 52px; border-radius: 12px; cursor: pointer;
+         font-size: 20px; color: #fff; background: #3a4750;
+         border: 3px solid #14100c; box-shadow: 0 4px 0 #14100c; }
+  .nav:active { transform: translateY(3px); box-shadow: 0 1px 0 #14100c; }
+  .sol-expr { flex: 1; display: flex; align-items: center; justify-content: center;
+              background: #10181c; border: 3px solid #0a0f12; border-radius: 12px;
+              padding: 16px 10px; font-size: clamp(19px, 5vw, 26px); font-weight: 900;
+              letter-spacing: 1px; color: #f5ecd7; text-align: center; }
+  .sol-actions { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .sol-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px;
+              max-height: 320px; overflow-y: auto; }
+  .sol-item { background: #10181c; border: 2px solid #3d4a52; border-radius: 10px;
+              padding: 10px 14px; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .sol-item.cur { border-color: #f5c542; color: #ffd94a; }
+  .no-sol { text-align: center; font-size: 17px; font-weight: 900; padding: 18px 0 6px; color: #f5ecd7; }
 
-  .hint { text-align: center; margin-top: 18px; font-size: 13px; letter-spacing: 2px; opacity: .85;
-          text-shadow: 2px 2px 0 rgba(0,0,0,.7); }
-  footer { text-align: center; margin-top: 26px; font-size: 12px; letter-spacing: 3px; opacity: .6;
-           text-shadow: 1px 1px 0 rgba(0,0,0,.7); }
-
-  /* ---------- 浅色模式 ---------- */
-  html[data-theme="light"] body { color: #374244; }
-  html[data-theme="light"] #bgDim { background: rgba(245,240,232,.62); }
-  html[data-theme="light"] .title h1 { text-shadow: 0 2px 0 #FE5F55, 0 4px 0 #a33327, 3px 7px 10px rgba(0,0,0,.25); }
-  html[data-theme="light"] .title p { color: #374244; text-shadow: none; }
-  html[data-theme="light"] .panel { background: rgba(245,240,232,.96); border-color: #374244; }
-  html[data-theme="light"] .picker-title { text-shadow: none; color: #374244; }
-  html[data-theme="light"] .opt { background: #dfe5e6; color: #374244; border-color: #9fb0b3; box-shadow: 0 3px 0 #9fb0b3; }
-  html[data-theme="light"] .opt.on { background: #FDA200; color: #fff; }
-  html[data-theme="light"] .sol-head { text-shadow: none; color: #374244; }
-  html[data-theme="light"] .sol-expr { background: rgba(55,66,68,.08); text-shadow: none; }
-  html[data-theme="light"] .sol-item { background: rgba(55,66,68,.06); border-color: rgba(55,66,68,.25);
-                                       text-shadow: none; color: #374244; }
-  html[data-theme="light"] .sol-item.cur { color: #b37400; border-color: #FDA200; }
-  html[data-theme="light"] .hint, html[data-theme="light"] footer { color: #374244; text-shadow: none; }
+  footer { margin-top: 22px; text-align: center; font-size: 12px; color: rgba(245,236,215,.5);
+           letter-spacing: 2px; }
 </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
-<div id="bgDim"></div>
-<div id="crt"></div>
+<div class="bg"></div>
 <canvas id="fx"></canvas>
 
 <div class="wrap">
-  <header>
-    <div class="title">
-      <h1>24点</h1>
-      <p>纸 牌 求 解 器</p>
-    </div>
-    <div class="top-btns">
-      <button class="icon-btn" id="soundBtn" title="音效开关">🔊</button>
-      <button class="icon-btn" id="themeBtn" title="浅色/深色">🌙</button>
-    </div>
-  </header>
-
-  <section class="table" id="table">
-    <div class="cards" id="cards"></div>
-  </section>
-
-  <div class="controls">
-    <button class="btn blue" id="dealBtn">🎲 随机发牌</button>
-    <button class="btn green" id="solveBtn">⚡ 求解</button>
+  <div class="top">
+    <div class="banner"><span class="px">FOUR CARDS<br>· ONE TARGET ·</span></div>
+    <h1 class="title"><span class="t1">凑出</span><span class="t2">24</span></h1>
   </div>
 
+  <section class="table" id="table">
+    <div class="hint-pill">点击牌面后选择点数</div>
+    <div class="cards" id="cards"></div>
+    <div class="controls">
+      <button class="btn blue" id="dealBtn">随机发牌</button>
+      <button class="btn red" id="solveBtn">解出 24 点</button>
+    </div>
+  </section>
+
   <section class="panel" id="pickerPanel">
-    <div class="picker-title">点第 <b id="pickSlot">1</b> 张牌换牌 &nbsp;·&nbsp; 点击牌面选中</div>
+    <div class="picker-head">
+      <span class="picker-title">选择点数</span>
+      <span class="picker-note">A=1 · J=11 · Q=12 · K=13</span>
+    </div>
+    <hr class="dash">
     <div class="opt-row" id="rankRow"></div>
-    <div class="opt-row" id="suitRow"></div>
+    <div class="opt-row" id="suitRow"><div class="row-label">花色</div></div>
   </section>
 
   <section class="panel" id="solPanel" hidden>
@@ -213,15 +195,14 @@
       <button class="nav" id="nextSol">▶</button>
     </div>
     <div class="sol-actions">
-      <button class="btn orange small" id="copySol">📋 复制算式</button>
+      <button class="btn gold small" id="copySol">复制算式</button>
       <button class="btn blue small" id="toggleAll">展开全部</button>
     </div>
     <div class="sol-list" id="solList" hidden></div>
     <div class="no-sol" id="noSol" hidden>这组牌无解 😅 换一组试试吧</div>
   </section>
 
-  <div class="hint">A=1 · J=11 · Q=12 · K=13 &nbsp;&nbsp;|&nbsp;&nbsp; 点击牌可换牌</div>
-  <footer>24 点纸牌求解器 · 祝好运 🍀</footer>
+  <footer>凑出 24 · 纸牌求解器</footer>
 </div>
 
 <script>
@@ -235,72 +216,10 @@ const SUITS = [
   { s:"♦", cls:"red" },  { s:"♣", cls:"black" },
 ];
 const rnd = n => Math.floor(Math.random()*n);
-
-/* ================= WebGL 红蓝漩涡背景 ================= */
-(function initBG(){
-  const cv = $("bg");
-  let gl;
-  try { gl = cv.getContext("webgl", {antialias:false}) || cv.getContext("experimental-webgl"); }
-  catch(e){ gl = null; }
-  if(!gl){ document.body.style.background = "linear-gradient(135deg,#3a1c2e,#102a4a)"; return; }
-  const VS = "attribute vec2 a_pos; void main(){ gl_Position = vec4(a_pos,0.0,1.0); }";
-  const FS = [
-    "precision mediump float;",
-    "uniform vec2 u_res; uniform float u_time; uniform vec3 u_c1; uniform vec3 u_c2;",
-    "void main(){",
-    "  vec2 uv = (gl_FragCoord.xy - 0.5*u_res)/u_res.y;",
-    "  vec2 p = uv;",
-    "  float t = u_time*0.10;",
-    "  for(int i=0;i<3;i++){",
-    "    float fi = float(i);",
-    "    p += 0.25*vec2(cos(t*1.7+fi*2.1+p.y*2.0), sin(t*1.3-fi*1.7+p.x*2.0));",
-    "    float r = length(p)+1e-4;",
-    "    float a = atan(p.y,p.x) + 0.42/(r+0.35) + t*(0.25+0.10*fi);",
-    "    p = vec2(cos(a),sin(a))*r;",
-    "  }",
-    "  float w = sin(p.x*4.0 + t*2.0)*sin(p.y*4.0 - t*1.6);",
-    "  float m = smoothstep(-0.9,0.9,w);",
-    "  vec3 deep = vec3(0.10,0.05,0.12);",
-    "  vec3 col = mix(deep, u_c1, smoothstep(0.05,0.90,m));",
-    "  col = mix(col, u_c2, smoothstep(0.10,0.95,1.0-m)*0.85);",
-    "  float vig = 1.0 - 0.55*dot(uv*0.7, uv*0.7);",
-    "  gl_FragColor = vec4(col*vig, 1.0);",
-    "}"
-  ].join("\n");
-  function sh(type, src){
-    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
-    if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ return null; }
-    return s;
-  }
-  const vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
-  if(!vs || !fs) return;
-  const pr = gl.createProgram();
-  gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
-  if(!gl.getProgramParameter(pr, gl.LINK_STATUS)) return;
-  gl.useProgram(pr);
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-  const loc = gl.getAttribLocation(pr, "a_pos");
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-  const uRes = gl.getUniformLocation(pr, "u_res");
-  const uTime = gl.getUniformLocation(pr, "u_time");
-  gl.uniform3f(gl.getUniformLocation(pr, "u_c1"), 0xFE/255, 0x5F/255, 0x55/255);
-  gl.uniform3f(gl.getUniformLocation(pr, "u_c2"), 0x00/255, 0x9D/255, 0xFF/255);
-  function resize(){
-    const w = Math.max(2, Math.floor(innerWidth/3)), h = Math.max(2, Math.floor(innerHeight/3));
-    if(cv.width!==w || cv.height!==h){ cv.width=w; cv.height=h; gl.viewport(0,0,w,h); }
-    gl.uniform2f(uRes, w, h);
-  }
-  addEventListener("resize", resize); resize();
-  const t0 = performance.now();
-  (function frame(){
-    gl.uniform1f(uTime, (performance.now()-t0)/1000);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    requestAnimationFrame(frame);
-  })();
-})();
+/* 选牌面板点数按钮文字颜色（还原分享版配色） */
+const RANK_TXT = { A:"red", "2":"black", "3":"black", "4":"red", "5":"red",
+  "6":"black", "7":"black", "8":"black", "9":"red", "10":"black",
+  "J":"red", "Q":"black", "K":"red" };
 
 /* ================= WebAudio 合成音效 ================= */
 const AudioFX = (function(){
@@ -386,7 +305,7 @@ const FX = (function(){
 
 /* ================= 24 点求解器 =================
    穷举: 4! 排列 × 4^3 运算符 × 5 种二叉树结构
-   分数运算避免浮点误差；加/乘按交换律+结合律去重，减/除保留方向；
+   分数运算避免浮点误差；加/乘按交换律+结合律去重；
    只保留数学上必需的括号。 */
 function gcd(a,b){ return b?gcd(b,a%b):a; }
 function normF(f){
@@ -408,7 +327,6 @@ function applyOp(op,l,r){
   return { op, left:l, right:r, v, label:"" };
 }
 function leaf(rank){ return { v:normF({n:rankVal(rank),d:1}), label:rank, num:String(rankVal(rank)) }; }
-
 function permutations(arr){
   const out=[];
   (function go(rest, path){
@@ -421,7 +339,6 @@ function permutations(arr){
   })(arr, []);
   return out;
 }
-/* 加/乘规范形: 拍平同级运算后排序, 用于去重 */
 function collectSame(t, op, out){
   if(t.op===op){ collectSame(t.left,op,out); collectSame(t.right,op,out); }
   else out.push(t);
@@ -482,10 +399,11 @@ function solve24(cards){
 
 /* ================= 界面逻辑 ================= */
 const state = {
-  cards: [ {rank:"A",suit:0}, {rank:"5",suit:1}, {rank:"9",suit:2}, {rank:"K",suit:3} ],
+  cards: [ {rank:"A",suit:0}, {rank:"3",suit:1}, {rank:"4",suit:3}, {rank:"6",suit:2} ],
   selected: 0,
   sols: [], solIdx: 0,
 };
+function qs(s){ return document.querySelector(s); }
 function cardEl(i){ return $("cards").children[i]; }
 
 function buildCards(){
@@ -494,22 +412,13 @@ function buildCards(){
     const el = document.createElement("div");
     el.className = "card" + (i===state.selected ? " selected" : "");
     el.innerHTML =
-      '<div class="card-inner"><div class="foil"></div>' +
-      '<div class="card-face">' +
-        '<div class="corner top"><div class="rank"></div><div class="suit"></div></div>' +
-        '<div class="pip"></div>' +
-        '<div class="corner bottom"><div class="rank"></div><div class="suit"></div></div>' +
-      "</div></div>";
+      '<div class="card-inner">' +
+        '<div class="card-face">' +
+          '<div class="corner top"><div class="rank"></div><div class="suit"></div></div>' +
+          '<div class="pip"></div>' +
+          '<div class="corner bottom"><div class="rank"></div><div class="suit"></div></div>' +
+        "</div></div>";
     el.addEventListener("click", ()=>{ selectSlot(i, true); });
-    el.addEventListener("mousemove", e=>{
-      const r = el.getBoundingClientRect();
-      const px = (e.clientX-r.left)/r.width - 0.5, py = (e.clientY-r.top)/r.height - 0.5;
-      el.querySelector(".card-inner").style.transform =
-        "rotateY("+(px*14).toFixed(1)+"deg) rotateX("+(-py*12).toFixed(1)+"deg) translateY(-6px)";
-    });
-    el.addEventListener("mouseleave", ()=>{
-      el.querySelector(".card-inner").style.transform = "";
-    });
     box.appendChild(el);
     paintCard(i);
   });
@@ -535,7 +444,6 @@ function flipTo(i){
 function selectSlot(i, sound){
   state.selected = i;
   [...$("cards").children].forEach((el,k)=>el.classList.toggle("selected", k===i));
-  $("pickSlot").textContent = i+1;
   syncPicker();
   if(sound){ AudioFX.select(); sparkleOn(i, 4); }
 }
@@ -562,7 +470,8 @@ function buildPicker(){
   const rr = $("rankRow"); rr.innerHTML = "";
   RANKS.forEach(r=>{
     const b = document.createElement("button");
-    b.className = "opt"; b.textContent = r; b.dataset.rank = r;
+    b.className = "opt"; b.innerHTML = '<span class="'+RANK_TXT[r]+'">'+r+'</span>';
+    b.dataset.rank = r;
     b.addEventListener("click", ()=>{
       const i = state.selected;
       if(state.cards[i].rank!==r){ state.cards[i].rank = r; flipTo(i); AudioFX.click(); hideSolutions(); }
@@ -570,7 +479,8 @@ function buildPicker(){
     });
     rr.appendChild(b);
   });
-  const sr = $("suitRow"); sr.innerHTML = "";
+  const sr = $("suitRow");
+  sr.querySelectorAll(".opt.suit").forEach(n=>n.remove());
   SUITS.forEach((st,idx)=>{
     const b = document.createElement("button");
     b.className = "opt suit "+st.cls; b.textContent = st.s; b.dataset.suit = idx;
@@ -586,20 +496,19 @@ function buildPicker(){
 function syncPicker(){
   const c = state.cards[state.selected];
   [...$("rankRow").children].forEach(b=>b.classList.toggle("on", b.dataset.rank===c.rank));
-  [...$("suitRow").children].forEach(b=>b.classList.toggle("on", +b.dataset.suit===c.suit));
+  [...$("suitRow").children].forEach(b=>b.classList.toggle("on", b.dataset.suit!=null && +b.dataset.suit===c.suit));
 }
 
 /* ---- 求解与答案展示 ---- */
 function solve(){
   AudioFX.click();
-  const t0 = performance.now();
   const sols = solve24(state.cards);
   state.sols = sols; state.solIdx = 0;
   const panel = $("solPanel");
   panel.hidden = false;
   if(sols.length){
     $("solCount").textContent = sols.length;
-    $("solMain").style.display = ""; $("solCount").parentElement.style.display = "";
+    $("solMain").style.display = ""; qs(".sol-head").style.display = "";
     qs(".sol-actions").style.display = "";
     $("noSol").hidden = true; $("solList").hidden = true;
     $("toggleAll").textContent = "展开全部";
@@ -610,8 +519,8 @@ function solve(){
     FX.burst(r.left+r.width/2, r.top, 30);
   } else {
     $("solMain").style.display = "none";
-    document.querySelector(".sol-actions").style.display = "none";
-    document.querySelector(".sol-head").style.display = "none";
+    qs(".sol-actions").style.display = "none";
+    qs(".sol-head").style.display = "none";
     $("noSol").hidden = false;
     AudioFX.error();
     $("table").classList.remove("shake"); void $("table").offsetWidth;
@@ -619,7 +528,6 @@ function solve(){
   }
   panel.scrollIntoView({behavior:"smooth", block:"nearest"});
 }
-function qs(s){ return document.querySelector(s); }
 function showSol(i){
   const sols = state.sols;
   if(!sols.length) return;
@@ -629,9 +537,8 @@ function showSol(i){
 }
 function hideSolutions(){
   $("solPanel").hidden = true;
-  $("solMain").style.display = ""; $("solCount").parentElement.style.display = "";
-  document.querySelector(".sol-actions").style.display = "";
-  document.querySelector(".sol-head").style.display = "";
+  $("solMain").style.display = ""; qs(".sol-head").style.display = "";
+  qs(".sol-actions").style.display = "";
 }
 
 /* ---- 牌面闪光(✦) ---- */
@@ -654,19 +561,7 @@ setInterval(()=>{
   sparkleOn(i, i===state.selected ? 3 : 1);
 }, 1400);
 
-/* ---- 顶栏按钮 ---- */
-$("soundBtn").addEventListener("click", ()=>{
-  const on = AudioFX.toggle();
-  $("soundBtn").textContent = on ? "🔊" : "🔇";
-  if(on) AudioFX.click();
-});
-$("themeBtn").addEventListener("click", ()=>{
-  const html = document.documentElement;
-  const light = html.dataset.theme!=="light";
-  html.dataset.theme = light ? "light" : "dark";
-  $("themeBtn").textContent = light ? "☀️" : "🌙";
-  AudioFX.click();
-});
+/* ---- 按钮绑定 ---- */
 $("dealBtn").addEventListener("click", deal);
 $("solveBtn").addEventListener("click", solve);
 $("prevSol").addEventListener("click", ()=>{ AudioFX.click(); showSol(state.solIdx-1); });
@@ -681,7 +576,7 @@ $("copySol").addEventListener("click", async ()=>{
     document.execCommand("copy"); ta.remove();
   }
   const b = $("copySol"); const old = b.textContent;
-  b.textContent = "✅ 已复制"; AudioFX.select();
+  b.textContent = "已复制 ✓"; AudioFX.select();
   setTimeout(()=>{ b.textContent = old; }, 1200);
 });
 $("toggleAll").addEventListener("click", ()=>{
