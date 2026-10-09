@@ -1,25 +1,30 @@
-# 24点 · 纸牌求解器
+# 24 Solver / 24点纸牌求解器
 
-单文件网页版 24 点纸牌求解器，零依赖，手机和电脑浏览器都能直接打开玩。
+中文：单文件网页版 24 点纸牌求解器，零依赖，手机与电脑浏览器即开即用。支持点牌换点数、一键随机发牌，穷举全部解法并依交换律与结合律去重。配彩虹流光牌面、翻牌动画与 WebAudio 合成音效。
 
-**在线玩：** https://holynova.github.io/24-solver/
+English: Zero-dependency single-file web app 24-point poker solver. Select custom ranks or deal randomly, compute all unique solutions with algebraic deduplication, featuring rainbow foil card styling, particle effects, and WebAudio synthesized sound.
 
-## 玩法
+![Project screenshot](./assets/screenshot.png)
 
-- 4 张牌：点牌选中后换点数（A～K）和花色，或一键随机发牌
-- 一键求解：穷举全部解法，按加/乘交换律与结合律去重，只保留数学上必需的括号
-- 解法浏览（上一个/下一个）、展开全部、复制算式（复制出来的是纯数字，可直接计算）
+## 在线体验 / Live Demo
 
-## 效果
+- [Cloudflare Demo](https://24-solver.xiaosang.cc/)
+- [GitHub Repo](https://github.com/holynova/24-solver)
 
-- 牌面：彩虹箔片流光、✦ 闪光、选中金色描边；发牌/翻牌动画、求解粒子与纸屑
-- 红蓝动态漩涡背景、浅色/深色模式、合成音效开关、手机自适应
+<img src="./assets/qr.png" width="180" alt="扫码访问 Cloudflare 在线体验">
 
-## 本地打开
+## 本地运行 / Run locally
 
-直接双击 `index.html`，或用浏览器打开即可。
+```bash
+open index.html
+```
 
-## 说明
+## 发布 / Deploy
 
-- A=1，J=11，Q=12，K=13
-- 求解用分数精确运算，不会有浮点误差
+```bash
+npx wrangler deploy --config wrangler.jsonc
+```
+
+Cloudflare Workers · Custom Domain: `24-solver.xiaosang.cc`
+
+源码与部署配置使用同一个主分支；在本地手动发布，不创建 Cloudflare 专用分支或 GitHub Action。
