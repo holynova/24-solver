@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>凑出 24 · 纸牌求解器</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -61,6 +61,8 @@
            background-image: radial-gradient(rgba(255,255,255,.07) 1.5px, transparent 1.6px);
            background-size: 18px 18px;
            box-shadow: 0 8px 0 rgba(0,0,0,.45), inset 0 0 0 3px rgba(255,255,255,.06); }
+  .rules { text-align: center; font-size: 14px; color: rgba(245,236,215,.72);
+           letter-spacing: 1px; margin: -6px 0 14px; }
   .hint-pill { display: table; margin: 0 auto 16px; background: #1c2a24;
                border: 3px solid #0e1512; border-radius: 12px; padding: 10px 20px;
                font-size: 17px; font-weight: 900; letter-spacing: 3px; color: #f5ecd7;
@@ -171,17 +173,19 @@
 
   <section class="table" id="table">
     <div class="hint-pill">点击牌面后选择点数</div>
+    <div class="rules">用 ＋ － × ÷ 把 4 张牌算出 24，每张牌只用一次</div>
     <div class="cards" id="cards"></div>
     <div class="controls">
       <button class="btn blue" id="dealBtn">随机发牌</button>
       <button class="btn red" id="solveBtn">解出 24 点</button>
+      <button class="btn ghost small" id="soundBtn">音效开</button>
     </div>
   </section>
 
   <section class="panel" id="pickerPanel">
     <div class="picker-head">
       <span class="picker-title">选择点数</span>
-      <span class="picker-note">A=1 · J=11 · Q=12 · K=13</span>
+      <span class="picker-note">A=1、J=11、Q=12、K=13，花色不影响解法</span>
     </div>
     <hr class="dash">
     <div class="opt-row" id="rankRow"></div>
@@ -191,9 +195,9 @@
   <section class="panel" id="solPanel" hidden>
     <div class="sol-head">共找到 <b id="solCount">0</b> 种解法</div>
     <div class="sol-main" id="solMain">
-      <button class="nav" id="prevSol">◀</button>
+      <button class="nav" id="prevSol" aria-label="上一个解法">◀</button>
       <div class="sol-expr" id="solExpr">—</div>
-      <button class="nav" id="nextSol">▶</button>
+      <button class="nav" id="nextSol" aria-label="下一个解法">▶</button>
     </div>
     <div class="sol-actions">
       <button class="btn gold small" id="copySol">复制算式</button>
@@ -448,11 +452,12 @@ function selectSlot(i, sound){
   syncPicker();
   if(sound){ AudioFX.select(); sparkleOn(i, 4); }
 }
-function randomCard(){ return { rank: RANKS[rnd(13)], suit: rnd(4) }; }
-
 function deal(){
   AudioFX.click();
-  state.cards = [randomCard(),randomCard(),randomCard(),randomCard()];
+  const deck = [];
+  RANKS.forEach(r=>{ for(let s=0;s<4;s++) deck.push({rank:r,suit:s}); });
+  for(let i=deck.length-1;i>0;i--){ const j=rnd(i+1); const t=deck[i]; deck[i]=deck[j]; deck[j]=t; }
+  state.cards = deck.slice(0,4);
   hideSolutions();
   const box = $("cards");
   [...box.children].forEach((el,i)=>{
@@ -564,6 +569,11 @@ setInterval(()=>{
 
 /* ---- 按钮绑定 ---- */
 $("dealBtn").addEventListener("click", deal);
+$("soundBtn").addEventListener("click", ()=>{
+  const on = AudioFX.toggle();
+  $("soundBtn").textContent = on ? "音效开" : "音效关";
+  if(on) AudioFX.click();
+});
 $("solveBtn").addEventListener("click", solve);
 $("prevSol").addEventListener("click", ()=>{ AudioFX.click(); showSol(state.solIdx-1); });
 $("nextSol").addEventListener("click", ()=>{ AudioFX.click(); showSol(state.solIdx+1); });
