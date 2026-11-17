@@ -1,30 +1,50 @@
-# 24 Solver / 24点纸牌求解器
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="凑出 24 · 24 点纸牌求解器：四张牌 9、10、A、7，算式 (9−A)×(10−7) = 24，共找到 2 种解法">
+</p>
 
-中文：单文件网页版 24 点纸牌求解器，零依赖，手机与电脑浏览器即开即用。支持点牌换点数、一键随机发牌，穷举全部解法并依交换律与结合律去重。配彩虹流光牌面、翻牌动画与 WebAudio 合成音效。
+<p align="center">
+  <a href="https://xiaosang.cc/24-solver/">▶ 在线体验 Live Demo</a>
+  ·
+  <a href="https://github.com/holynova/24-solver">GitHub 仓库</a>
+</p>
 
-English: Zero-dependency single-file web app 24-point poker solver. Select custom ranks or deal randomly, compute all unique solutions with algebraic deduplication, featuring rainbow foil card styling, particle effects, and WebAudio synthesized sound.
+凑出 24 是一款单文件网页版 24 点纸牌求解器：输入任意 4 张牌的点数，穷举全部解法，并按交换律与结合律去重。零依赖，手机与电脑浏览器即开即用。
 
-![Project screenshot](./assets/screenshot.png)
+24 Solver is a zero-dependency, single-file web app: enter any four card ranks and it enumerates every solution that makes 24, deduplicated by commutativity and associativity. Opens instantly in any mobile or desktop browser.
 
-## 在线体验 / Live Demo
+## 截图 / Screenshot
 
-- [Cloudflare Demo](https://24-solver.xiaosang.cc/)
-- [GitHub Repo](https://github.com/holynova/24-solver)
+<p align="center">
+  <img src="./assets/readme/screenshot.png" width="100%" alt="求解器界面：四张牌 9、10、A、7，下方显示共找到 2 种解法，当前解法 (9−A)×(10−7) = 24">
+</p>
 
-<img src="./assets/qr.png" width="180" alt="扫码访问 Cloudflare 在线体验">
+## 怎么用 / How to Use
 
-## 本地运行 / Run locally
+1. 点一张牌，在下方选点数（A=1、J=11、Q=12、K=13，花色不影响解法）；或点「随机发牌」。
+2. 点「解出 24 点」，即得全部解法。
+3. 用 ◀ ▶ 翻页查看每种解法，点「复制算式」复制当前算式，点「展开全部」一次看完。
 
-```bash
-open index.html
-```
+## 功能 / Features
 
-## 发布 / Deploy
+- **穷举全部解法**：4 张牌的所有排列与运算符组合逐一验算，按交换律与结合律去重，不漏解、不重复。
+- **点牌换点数**：点任意一张牌换点数与花色；花色只影响牌面显示，不影响解法。
+- **随机发牌**：一键发 4 张新牌。
+- **解法浏览**：翻页查看、复制算式、展开全部。
+- **像素纸牌界面**：彩虹流光牌面、翻牌动画、WebAudio 合成音效（可关）。
 
-```bash
-npx wrangler deploy --config wrangler.jsonc
-```
+## 本地运行 / Run Locally
 
-Cloudflare Workers · Custom Domain: `24-solver.xiaosang.cc`
+单文件，零依赖、零构建，直接打开 `index.html` 即可。
 
-源码与部署配置使用同一个主分支；在本地手动发布，不创建 Cloudflare 专用分支或 GitHub Action。
+## 技术 / Tech
+
+- 全部逻辑在一个 `index.html` 里：穷举搜索 + 代数去重，纯前端，无后端、无网络请求。
+- 牌面用 CSS 绘制，音效用 WebAudio 合成，无音频文件。
+
+## English
+
+**24 Solver** finds every way to make 24 from four playing cards. Pick ranks by tapping a card (A=1, J=11, Q=12, K=13; suits don't affect solutions) or hit "Deal" for a random hand, then tap "Solve" to see all unique solutions — flip through them, copy the expression, or expand all at once.
+
+- **Exhaustive search**: every permutation and operator combination is checked, then deduplicated by commutativity and associativity — no missing solutions, no duplicates.
+- **Single file, zero dependencies**: everything lives in one `index.html`. Open it directly in any browser; no build step, no server, no network requests.
+- **Pixel card table**: rainbow-foil card faces, flip animations, and synthesized WebAudio sound effects (can be muted).

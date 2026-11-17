@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="340" viewBox="0 0 1200 340"
+     role="img" aria-labelledby="title desc">
+  <title id="title">凑出 24 · 24 点纸牌求解器</title>
+  <desc id="desc">深紫红底标题：凑出 24，副标题 4 张牌，穷举全部解法；右侧是四张扑克牌 9、10、A、7，下方算式 (9−A)×(10−7) = 24。</desc>
+
+  <defs>
+    <pattern id="felt-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-opacity="0.05" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="340" rx="26" fill="#2b1a24"/>
+  <rect width="1200" height="340" rx="26" fill="url(#felt-grid)"/>
+
+  <g id="title-block" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif">
+    <text x="56" y="60" font-size="19" letter-spacing="2" fill="#e8b4c8">纸牌求解器 · 24-POINT SOLVER</text>
+    <text x="56" y="126" font-size="62" font-weight="700" fill="#f5c518">凑出 24</text>
+    <text x="56" y="164" font-size="23" fill="#f5efdc">24 SOLVER — 4 张牌，穷举全部解法</text>
+    <text x="56" y="200" font-size="19" fill="#c9b8c0">点牌换点数，或随机发牌，一键算出所有解法。</text>
+    <g id="chips" font-size="18" fill="#f5efdc" text-anchor="middle">
+      <g><rect x="56" y="232" width="90" height="36" rx="18" fill="#3d2432" stroke="#6b4a5c" stroke-width="1.5"/><text x="101" y="256">零依赖</text></g>
+      <g><rect x="158" y="232" width="90" height="36" rx="18" fill="#3d2432" stroke="#6b4a5c" stroke-width="1.5"/><text x="203" y="256">单文件</text></g>
+      <g><rect x="260" y="232" width="198" height="36" rx="18" fill="#3d2432" stroke="#6b4a5c" stroke-width="1.5"/><text x="359" y="256">手机电脑即开即用</text></g>
+    </g>
+  </g>
+
+  <g id="cards" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif">
+    <g id="card-9">
+      <rect x="700" y="56" width="100" height="140" rx="10" fill="#f5efdc" stroke="#d8cdb4" stroke-width="2"/>
+      <text x="714" y="94" font-size="30" font-weight="700" fill="#22252a">9</text>
+      <text x="714" y="120" font-size="20" fill="#22252a">♣</text>
+      <text x="750" y="156" font-size="52" fill="#22252a" text-anchor="middle">♣</text>
+    </g>
+    <g id="card-10">
+      <rect x="808" y="56" width="100" height="140" rx="10" fill="#f5efdc" stroke="#d8cdb4" stroke-width="2"/>
+      <text x="820" y="94" font-size="26" font-weight="700" fill="#22252a">10</text>
+      <text x="822" y="120" font-size="20" fill="#22252a">♣</text>
+      <text x="858" y="156" font-size="52" fill="#22252a" text-anchor="middle">♣</text>
+    </g>
+    <g id="card-a">
+      <rect x="916" y="56" width="100" height="140" rx="10" fill="#f5efdc" stroke="#d8cdb4" stroke-width="2"/>
+      <text x="930" y="94" font-size="30" font-weight="700" fill="#22252a">A</text>
+      <text x="930" y="120" font-size="20" fill="#22252a">♠</text>
+      <text x="966" y="156" font-size="52" fill="#22252a" text-anchor="middle">♠</text>
+    </g>
+    <g id="card-7">
+      <rect x="1024" y="56" width="100" height="140" rx="10" fill="#f5efdc" stroke="#d8cdb4" stroke-width="2"/>
+      <text x="1038" y="94" font-size="30" font-weight="700" fill="#22252a">7</text>
+      <text x="1038" y="120" font-size="20" fill="#22252a">♠</text>
+      <text x="1074" y="156" font-size="52" fill="#22252a" text-anchor="middle">♠</text>
+    </g>
+    <text x="912" y="252" font-size="30" font-weight="700" fill="#f5c518" text-anchor="middle">(9−A)×(10−7) = 24</text>
+    <text x="912" y="284" font-size="18" fill="#c9b8c0" text-anchor="middle">共找到 2 种解法 · 交换律与结合律去重</text>
+  </g>
+</svg>
